@@ -1,0 +1,140 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 0 0% 96%;
+    --foreground: 215 25% 27%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 27%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 27%;
+
+    /* --primary: 243 75% 59%; */
+    --primary: 235 38% 44%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 60% 90%;
+    --secondary-foreground: 243 75% 59%;
+
+    --muted: 220 13% 95%;
+    --muted-foreground: 215 15% 50%;
+
+    --accent: 271 76% 53%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 243 75% 59%;
+
+    --radius: 0.5rem;
+    
+    --sidebar-bg: 215 28% 17%;
+    --sidebar-hover: 215 28% 22%;
+    --sidebar-active: 243 75% 59%;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* --- priority colors --- */
+    --priority-critical :#E22D1F;
+    --priority-high :#FF8D28;
+    --priority-medium :#00C3D0;
+    --priority-low :#34C759;
+
+    /* --- status colors --- */
+    --status-unassigned: #0088FF;   /* Neutral gray */
+--status-assigned: #673AB7;     /* Blue */
+--status-on-hold: #FF8D28;      /* Yellow */
+--status-in-progress: #00C8B3;  /* Sky blue */
+--status-stagging: #687CFF;     /* Violet */
+--status-verification: #AC7F5E; /* Teal */
+--status-completed: #079424;    /* Green */
+--status-resolved: #464D9B;     /* Deep green */
+--status-rejected: #FF383C;     /* Red */
+
+  }
+
+  .dark {
+    --background: 215 28% 17%;
+    --foreground: 0 0% 98%;
+
+    --card: 215 25% 20%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 215 25% 20%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 243 75% 59%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 215 25% 27%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 215 20% 30%;
+    --muted-foreground: 220 10% 70%;
+
+    --accent: 271 76% 53%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 215 20% 30%;
+    --input: 215 20% 30%;
+    --ring: 243 75% 59%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
