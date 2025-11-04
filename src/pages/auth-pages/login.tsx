@@ -1,37 +1,46 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { NavLink, useNavigate } from "react-router-dom";
-import vertaxLogo from "@/assets/images/vertaxLogo.svg";
+import vertaxLogo from "@/assets/svg-icons/logodesk.svg";
 import authScreenImage from "@/assets/images/authScreenImage.svg";
 import favIconVertax from "@/assets/images/favicon VERTEX.svg";
 import eyeIcon from "@/assets/images/eyeIcon.png";
 import eyeFill from "@/assets/images/eyeFill.png";
+// import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
-const Login = ({ message = "" }) => {
+const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  // const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm();
+   const {
+      register,
+      handleSubmit,
+      // setValue,
+      // watch,
+      formState: { errors },
+    } = useForm({
+      // resolver: zodResolver(ticketFormSchema),
+      defaultValues: {
+        email: "",
+        password:  "",
+      },
+    });
 
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
-  const onSubmit = (data) => {
-    const payload = {
-      email: data.email,
-      password: data.password,
-    };
-    console.log(payload);
-    if(data.email === "admin@gmail.com", data.password === "password"){
-      navigate("/dashboard");
-    }
-    // setIsLoading(true);
-    // doLogin(payload, navigate, permissions).finally(() => setIsLoading(false));
-  };
+  // const onSubmit = (data) => {
+  //   const payload = {
+  //     email: data.email,
+  //     password: data.password,
+  //   };
+  //   console.log(payload);
+  //   if(data.email === "admin@gmail.com", data.password === "password"){
+  //     navigate("/dashboard");
+  //   }
+  //   // setIsLoading(true);
+  //   // doLogin(payload, navigate, permissions).finally(() => setIsLoading(false));
+  // };
 
   useEffect(() => {
     window.history.pushState(null, "", window.location.pathname);
@@ -39,6 +48,22 @@ const Login = ({ message = "" }) => {
     window.addEventListener("popstate", handleBack);
     return () => window.removeEventListener("popstate", handleBack);
   }, [navigate]);
+
+  const { login } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const onSubmit = async (data) => {
+    // e.preventDefault();
+    setIsLoading(true);
+    console.log("Login data:", data);
+    const { email, password } = data;
+    try {
+      await login(email, password);
+    } catch (error) {
+      // Error handled in context
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-white">
@@ -52,8 +77,10 @@ const Login = ({ message = "" }) => {
           </h2>
 
           <p className="text-gray-600 text-sm leading-relaxed max-w-sm mb-6">
-            Empower your team to manage, assign, and resolve support tickets efficiently while keeping customers happy.
-            Streamline workflows, automate repetitive tasks, and track every issue in real time for faster, smarter resolutions.
+            Empower your team to manage, assign, and resolve support tickets
+            efficiently while keeping customers happy. Streamline workflows,
+            automate repetitive tasks, and track every issue in real time for
+            faster, smarter resolutions.
           </p>
 
           {/* Image with controlled height */}
@@ -82,22 +109,26 @@ const Login = ({ message = "" }) => {
           <div className="w-full max-w-sm">
             <div className="text-center mb-8">
               <h2 className="text-3xl font-semibold text-gray-800">Login</h2>
-              {message && (
+              {/* {message && (
                 <p className="bg-red-100 border border-red-300 text-red-600 text-sm mt-3 p-2 rounded">
                   {message}
                 </p>
-              )}
+              )} */}
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
               {/* Email */}
               <div>
-                <label className="block text-gray-700 text-sm font-medium mb-1">
+                <label
+                  htmlFor="email"
+                  className="block text-gray-700 text-sm font-medium mb-1"
+                >
                   Email Address
                 </label>
                 <input
                   type="email"
                   placeholder="Enter your email"
+                  id="email"
                   {...register("email", {
                     required: "Email is required",
                     pattern: {
@@ -108,11 +139,7 @@ const Login = ({ message = "" }) => {
                   className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
                 {/* Uncomment if you want error text */}
-                {/* {errors.email && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.email.message}
-                  </p>
-                )} */}
+                {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
               </div>
 
               {/* Password */}
@@ -123,7 +150,9 @@ const Login = ({ message = "" }) => {
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter your password"
-                  {...register("password", { required: "Password is required" })}
+                  {...register("password", {
+                    required: "Password is required",
+                  })}
                   className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
                 <img
@@ -137,6 +166,7 @@ const Login = ({ message = "" }) => {
                     {errors.password.message}
                   </p>
                 )} */}
+                {errors.password && <p className="text-sm text-destructive mt-1">{errors.password.message}</p>}
               </div>
 
               {/* Options */}

@@ -176,7 +176,7 @@ const ActivityLog = () => {
                       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         placeholder="Search By"
-                        className="pl-9 bg-white"
+                        className="pl-9 bg-white py-[8px] rounded"
                       />
                     </div>
         

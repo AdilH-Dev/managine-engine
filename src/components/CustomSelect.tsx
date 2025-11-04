@@ -1,16 +1,19 @@
+import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
 
 export interface Option {
-  label: string;
-  value: string;
+  name: string;
+  id: string;
 }
 
 interface CustomSelectProps {
   options: Option[];
   placeholder?: string;
-  onChange?: (value: Option | null) => void;
+  onChange?: (id: Option | null) => void;
   defaultValue?: Option | null;
   showNoneOption?: boolean;
+  className?: string; // parent can style the trigger button
+  dropdownClassName?: string;
 }
 
 export default function CustomSelect({
@@ -19,20 +22,26 @@ export default function CustomSelect({
   onChange,
   defaultValue = null,
   showNoneOption = true,
+  className = "", // parent can style the trigger button
+  dropdownClassName = "",
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selected, setSelected] = useState<Option | null>(defaultValue);
   const [search, setSearch] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+  setSelected(defaultValue || null);
+}, [defaultValue]);
+
   // Combine "None" option if enabled
   const finalOptions = showNoneOption
-    ? [{ label: placeholder, value: "" }, ...options]
+    ? [{ name: placeholder, id: "" }, ...options]
     : options;
 
   // Filter by search
   const filtered = finalOptions.filter((item) =>
-    item.label.toLowerCase().includes(search.toLowerCase())
+    item?.name?.toLowerCase()?.includes(search?.toLowerCase())
   );
 
   // Handle outside click
@@ -52,7 +61,7 @@ export default function CustomSelect({
 
   // Handle select
   const handleSelect = (item: Option) => {
-    if (item.value === "") {
+    if (item.id === "") {
       setSelected(null);
       onChange?.(null);
     } else {
@@ -77,10 +86,14 @@ export default function CustomSelect({
       {/* Trigger */}
       <button
         onClick={toggleDropdown}
-        className="w-full flex  justify-between items-center px-3 py-2 border border-gray-300 rounded-md text-sm bg-[#f5f5f5] hover:border-gray-400 focus:outline-none"
+        className={cn(
+          "w-full flex justify-between items-center px-[5px] py-[5px] border rounded-[3px] text-[13px] bg-white focus:outline-none",
+          className
+        )}
+        type="button"
       >
         <span className={selected ? "text-gray-900" : "text-gray-400"}>
-          {selected ? selected.label : placeholder}
+          {selected ? selected.name : placeholder}
         </span>
         <svg
           className={`w-4 h-4 text-gray-500 transition-transform ${
@@ -101,13 +114,19 @@ export default function CustomSelect({
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute rounded-md z-10 mt-1 w-full bg-white border border-gray-200 shadow-sm">
+        <div
+          className={cn(
+            "absolute rounded-md z-10 mt-1 min-w-[200px] w-full bg-white border border-gray-200 shadow-sm",
+            dropdownClassName
+          )}
+        >
           {/* Search */}
           <div className="p-2">
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              autoFocus
               placeholder="Search..."
               className="w-full border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
@@ -118,13 +137,13 @@ export default function CustomSelect({
             {filtered.length > 0 ? (
               filtered.map((item) => (
                 <li
-                  key={item.value || "none"}
+                  key={item.id || "none"}
                   onClick={() => handleSelect(item)}
                   className={`px-3 py-2 cursor-pointer hover:bg-blue-50 ${
-                    selected?.value === item.value ? "bg-blue-100" : ""
+                    selected?.id === item.id ? "bg-blue-100" : ""
                   }`}
                 >
-                  {item.label}
+                  {item.name}
                 </li>
               ))
             ) : (

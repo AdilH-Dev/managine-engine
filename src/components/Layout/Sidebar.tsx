@@ -35,6 +35,7 @@ const menuItems = [
           { path: "/setup/assets-type", label: "Asset Management" },
           { path: "/setup/sub-category", label: "Sub Category" },
           { path: "/setup/assets", label: "Assets" },
+          { path: "/setup/helpdesk/category", label: "Helpdesk" },
         ],
       },
       {

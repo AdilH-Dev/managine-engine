@@ -89,7 +89,7 @@ const Requester = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <MainLayout title="Setup">
+    <MainLayout title="">
       <div className="mb-6 bg-white px-[24px] py-[15px] flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <h2 className="text-xl font-semibold text-foreground flex-shrink-0">
           Requester
@@ -227,11 +227,11 @@ const Requester = () => {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="jobTitle">Job Title</Label>
-                <Input id="jobTitle" placeholder="Enter Job Title" />
-              </div>
-              <div>
+                <div>
+                  <Label htmlFor="jobTitle">Job Title</Label>
+                  <Input id="jobTitle" placeholder="Enter Job Title" />
+                </div>
+                <div>
                   <Label htmlFor="company-logo">Upload Image</Label>
                   <Input
                     id="company-logo"
@@ -240,19 +240,19 @@ const Requester = () => {
                   />
                 </div>
               </div>
-                <div>
-                  <Label htmlFor="site">Assign Site</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Site" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="site1">Head Office</SelectItem>
-                      <SelectItem value="site2">Branch A</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-               
+              <div>
+                <Label htmlFor="site">Assign Site</Label>
+                <Select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Site" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="site1">Head Office</SelectItem>
+                    <SelectItem value="site2">Branch A</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="flex justify-end gap-4 pt-4">
                 <Button
                   variant="outline"
@@ -300,14 +300,14 @@ const Requester = () => {
                 <TableCell>{requester.site}</TableCell>
                 <TableCell>
                   <DropdownMenu>
-                      <DropdownMenuTrigger className="flex items-center justify-center gap-2 hover:bg-gray-100 rounded p-1 w-full">
-                        <MoreVertical className="w-4 h-4" />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
-                        <DropdownMenuItem>Delete</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <DropdownMenuTrigger className="flex items-center justify-center gap-2 hover:bg-gray-100 rounded p-1 w-full">
+                      <MoreVertical className="w-4 h-4" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem>Edit</DropdownMenuItem>
+                      <DropdownMenuItem>Delete</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
             ))}

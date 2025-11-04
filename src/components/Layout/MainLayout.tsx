@@ -31,7 +31,7 @@ export const MainLayout = ({ children, title }: MainLayoutProps) => {
         </div>
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto p-8">{children}</main>
+        <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>
   );

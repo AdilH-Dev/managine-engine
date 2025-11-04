@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "../ui/button";
 import { useNavigate } from "react-router-dom";
-import straightLogo from "@/assets/svg-icons/straight-logo.svg";
+// import straightLogo from "@/assets/svg-icons/straight-logo.svg";
 
 
 interface HeaderProps {
@@ -92,6 +92,7 @@ export const Header = ({ title }: HeaderProps) => {
             <DropdownMenuItem>Settings</DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {
+                localStorage.clear();
                 navigate("/");
               }}
             >

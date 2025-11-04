@@ -3,9 +3,28 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { MoreVertical } from "lucide-react";
 import { useState } from "react";
 import { Search } from "lucide-react";
@@ -22,6 +41,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import clearIcon from "@/assets/svg-icons/clear-icon.svg";
+import Helpdesk from "./healper/Helpdesk";
 
 const categories = [
   { id: 1, name: "Hardware" },
@@ -35,8 +55,8 @@ const Category = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <MainLayout title="Setup">
-
+    // <MainLayout title="Setup">
+    <Helpdesk>
       <div className="mb-6 bg-white px-[24px] py-[15px] flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <h2 className="text-xl font-semibold text-foreground flex-shrink-0">
           Category
@@ -66,28 +86,28 @@ const Category = () => {
           </Button>
         </div>
 
-                  <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-              {/* <Button className="bg-primary flex items-center gap-2">
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <DialogTrigger asChild>
+            {/* <Button className="bg-primary flex items-center gap-2">
                 Add Category <Plus className="w-4 h-4" />
               </Button> */}
-              <Button className="w-[160px] rounded-none bg-primary text-primary-foreground hover:bg-primary/90">
+            <Button className="w-[160px] rounded-none bg-primary text-primary-foreground hover:bg-primary/90">
               Add Category
               <span className="h-[18px] w-[18px] mr-2 rounded-full bg-white text-primary flex items-center justify-center flex-shrink-0">
                 <img alt="plusIcon" src={plusIcon} />
               </span>
             </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px] bg-white">
-              <DialogHeader>
-                <DialogTitle>Add Category</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 pt-4">
-                <div>
-                  <Label htmlFor="name">Name*</Label>
-                  <Input id="name" placeholder="Enter Category Name" />
-                </div>
-                <div className="flex justify-end gap-4 pt-4">
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px] bg-white">
+            <DialogHeader>
+              <DialogTitle>Add Category</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div>
+                <Label htmlFor="name">Name*</Label>
+                <Input id="name" placeholder="Enter Category Name" />
+              </div>
+              <div className="flex justify-end gap-4 pt-4">
                 <Button
                   variant="outline"
                   className="bg-white w-[140px] h-[44px]"
@@ -106,12 +126,11 @@ const Category = () => {
                   Add
                 </Button>
               </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
       <Card className="px-6 rounded-none border-none">
-
         <Table>
           <TableHeader>
             <TableRow>
@@ -127,14 +146,14 @@ const Category = () => {
                 <TableCell>{category.name}</TableCell>
                 <TableCell>
                   <DropdownMenu>
-                      <DropdownMenuTrigger className="flex items-center justify-center gap-2 hover:bg-gray-100 rounded p-1 w-full">
-                        <MoreVertical className="w-4 h-4" />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
-                        <DropdownMenuItem>Delete</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <DropdownMenuTrigger className="flex items-center justify-center gap-2 hover:bg-gray-100 rounded p-1 w-full">
+                      <MoreVertical className="w-4 h-4" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem>Edit</DropdownMenuItem>
+                      <DropdownMenuItem>Delete</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
             ))}
@@ -157,21 +176,35 @@ const Category = () => {
             <span className="text-sm text-gray-600">Per Page</span>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm">&lt;</Button>
-            <Button size="sm" className="bg-primary">1</Button>
-            <Button variant="outline" size="sm">2</Button>
-            <Button variant="outline" size="sm">3</Button>
-            <Button variant="outline" size="sm">4</Button>
-            <Button variant="outline" size="sm">&gt;</Button>
+            <Button variant="outline" size="sm">
+              &lt;
+            </Button>
+            <Button size="sm" className="bg-primary">
+              1
+            </Button>
+            <Button variant="outline" size="sm">
+              2
+            </Button>
+            <Button variant="outline" size="sm">
+              3
+            </Button>
+            <Button variant="outline" size="sm">
+              4
+            </Button>
+            <Button variant="outline" size="sm">
+              &gt;
+            </Button>
           </div>
         </div>
 
-       <div className="flex items-center justify-end gap-2 text-sm font-medium text-[#5C71B6] pt-8 pb-6">
+        <div className="flex items-center justify-end gap-2 text-sm font-medium text-[#5C71B6] pt-8 pb-6">
           <span>© 2025 Vertex. All Rights Reserved.</span>
           <img alt="tableBottomIcon" src={tableBottomIcon} />
         </div>
       </Card>
-    </MainLayout>
+    </Helpdesk>
+
+    // </MainLayout>
   );
 };
 
