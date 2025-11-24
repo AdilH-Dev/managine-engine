@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "../ui/button";
 import { useNavigate } from "react-router-dom";
-// import straightLogo from "@/assets/svg-icons/straight-logo.svg";
+import straightLogo from "@/assets/images/hbl.png";
 
 
 interface HeaderProps {
@@ -34,11 +34,11 @@ export const Header = ({ title }: HeaderProps) => {
         >
           <ChevronLeft className="h-5 w-5" />
         </Button>
-        <span className="text-[18px]">
+        {/* <span className="text-[18px]">
         Viper Technologies
-        </span>
+        </span> */}
         {/* )} */}
-        {/* <img src={straightLogo} alt="Logo" className=""/> */}
+        <img src={straightLogo} alt="Logo" className="h-[27px]"/>
         {/* <h1 className="text-xl font-semibold text-gray-800">{title}</h1> */}
       </div>
 

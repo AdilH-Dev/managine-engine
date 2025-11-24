@@ -1,14 +1,8 @@
-import React, { useState } from "react";
-import { IoIosHelpCircle, IoIosArrowRoundUp } from "react-icons/io";
-import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableHead,
-  TableRow,
-  TableCell,
-} from "@/components/ui/table";
+import { useState, useEffect } from "react";
+import { IoIosHelpCircle } from "react-icons/io";
+import { useForm, SubmitHandler } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { mode, modeService } from "@/services/setupServices";
 import {
   Dialog,
   DialogContent,
@@ -16,103 +10,231 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Table,
+  TableHead,
+  TableRow,
+  TableHeader,
+  TableBody,
+  TableCell,
+} from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-
-// ✅ Import dropdown components
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { useForm } from "react-hook-form";
-import { log } from "console";
-import { Description } from "@radix-ui/react-toast";
-import { updateOptions } from "recharts/types/state/rootPropsSlice";
-import { MainLayout } from "@/components/Layout/MainLayout";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select";
+import { ArrowDown, ArrowUp, Search, Settings } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
+import { MuiStylePagination } from "@/components/common/MuiStylePagination";
 import Helpdesk from "./healper/Helpdesk";
+import { nameDescriptionSchema, NameDescriptionSchema } from "@/lib/validation";
+import { Textarea } from "@/components/ui/textarea";
 
 const Mode = () => {
-  const [modes, setModes] = useState([
-    { name: "E-Mail", description: "Request through mail" },
-    { name: "Live Chat", description: "Request through live chat" },
-    {
-      name: "Mobile Application",
-      description: "Request through mobile application",
-    },
-    { name: "Phone Call", description: "Request through phone call" },
-    { name: "Web Form", description: "Request through web form" },
-  ]);
-
+  const [modes, setModes] = useState<mode[]>([]);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    itemsPerPage: 5,
+  });
+  const [tableLoading, setTableLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(null);
+  const [currentMode, setCurrentMode] = useState<mode | null>(null);
+  const [showDelete, setShowDelete] = useState(false);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [sortBy, setSortBy] = useState<string>("name");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [searchInput, setSearchInput] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const {
     register,
     handleSubmit,
-    formState: { errors },
     reset,
     setValue,
-  } = useForm({
+    formState: { errors, isSubmitting },
+  } = useForm<NameDescriptionSchema>({
+    resolver: zodResolver(nameDescriptionSchema),
     defaultValues: { name: "", description: "" },
+    mode: "onSubmit",
   });
-  const onFormSubmit = (data) => {
-    if (editMode && currentIndex !== null) {
-      const Updatedmodes = [...modes];
-      Updatedmodes[currentIndex] = data;
-      setModes(Updatedmodes);
-    } else {
-      setModes((prev) => [...prev, data]);
+
+  // Fetch Modes
+  const fetchModes = async () => {
+    setTableLoading(true);
+    try {
+      const res = await modeService.getModes({
+        page: currentPage,
+        limit: itemsPerPage,
+        sort_by: sortBy,
+        sort_order: sortOrder,
+        search: searchTerm,
+      });
+      if (res.success) {
+        setModes(res.data?.modes || []);
+        setPagination(
+          res.data?.pagination || {
+            currentPage: 1,
+            totalPages: 1,
+            totalItems: 0,
+            itemsPerPage: 5,
+          }
+        );
+      } else {
+        toast({
+          title: "Error",
+          description: res.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Something went wrong",
+        variant: "destructive",
+      });
+    } finally {
+      setTableLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchModes();
+  }, [currentPage, itemsPerPage, sortBy, sortOrder, searchTerm]);
+
+  // Debounce search
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setCurrentPage(1);
+      setSearchTerm(searchInput.trim());
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchInput]);
+
+  const handleSort = (column: string) => {
+    if (sortBy === column)
+      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    else {
+      setSortBy(column);
+      setSortOrder("asc");
+    }
+    setCurrentPage(1);
+  };
+
+  const openNewDialog = () => {
     setEditMode(false);
-    setIsOpen(false);
-    reset();
+    setCurrentMode(null);
+    reset({ name: "", description: "" });
+    setIsOpen(true);
   };
 
-  // ✅ Add new mode
-  const OpenNewForm = () => {
+  const handleEdit = (m: mode) => {
     setEditMode(true);
-    reset();
+    setCurrentMode(m);
+    setValue("name", m.name);
+    setValue("description", m.description || "");
     setIsOpen(true);
   };
 
-  // ✅ Edit mode
-  const handleEditMode = (index) => {
-    const mode = modes[index];
-    setCurrentIndex(index);
-    setEditMode(true);
-    setIsOpen(true);
-    setValue("name", mode.name);
-    setValue("description", mode.description);
-    setIsOpen(true);
+  const confirmDelete = async () => {
+    if (!currentMode) return;
+    setDeleteLoading(true);
+    try {
+      const res = await modeService.deleteMode(currentMode.id);
+      if (res.success) {
+        toast({ title: "Success", description: res.message || "Mode deleted" });
+        setShowDelete(false);
+        fetchModes();
+      } else {
+        toast({
+          title: "Error",
+          description: res.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Something went wrong",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
-  // ✅ Delete mode
-  const handleDeleteMode = (index) => {
-    setModes((prev) => prev.filter((_, i) => i !== index));
+  const onSubmit: SubmitHandler<NameDescriptionSchema> = async (data) => {
+    try {
+      let res;
+      if (editMode && currentMode)
+        res = await modeService.updateMode(currentMode.id, data as mode);
+      else res = await modeService.createMode(data as mode);
+      if (res.success) {
+        toast({
+          title: "Success",
+          description: res.message || "Operation successful",
+        });
+        setIsOpen(false);
+        fetchModes();
+      } else {
+        toast({
+          title: "Error",
+          description: res.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Something went wrong",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
     <Helpdesk>
-      <div className="min-h-screen bg-white p-6 border-none shadow-none relative overflow-visible">
+      <div className="min-h-screen bg-white p-6 w-full">
         {/* Header */}
-        <div className="flex justify-between items-center mb-2">
+        <div className="flex justify-between items-end border-b border-[#e6e6e6] border-dotted mb-[6px]">
           <h1 className="text-[21px] font-normal text-gray-800">Mode</h1>
-          <IoIosHelpCircle className="text-blue-500" size={28} />
+          <span className="bg-blue-600 w-[25px] h-[25px] flex items-center justify-center rounded-full text-white text-sm font-bold mb-1">
+            ?
+          </span>
         </div>
 
-        {/* Top Controls */}
-        <div className="flex items-center justify-between mb-4">
-          {/* Dialog for adding or editing */}
+        {/* Controls */}
+        <div className="flex items-center justify-between mb-1 gap-4 flex-wrap">
           <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
               <button
-                onClick={OpenNewForm}
-                className="px-3 py-1.5 border rounded-md text-xs text-gray-700 hover:bg-gray-50"
+                onClick={openNewDialog}
+                className="px-3 py-1.5 border border-[#ccd3de] rounded text-xs text-gray-700 hover:bg-[#ececec] leading-[11px] focus:outline-none focus:ring-0 focus:ring-blue-500 focus:border-blue-500"
               >
                 New Mode
               </button>
@@ -120,177 +242,267 @@ const Mode = () => {
 
             <DialogContent className="sm:max-w-[500px] bg-white border-0 shadow-lg">
               <DialogHeader>
-                <DialogTitle>{editMode ? "Edit Mode" : "New Mode"}</DialogTitle>
+                <DialogTitle className="text-xl font-normal">
+                  {editMode ? "Edit Mode" : "New Mode"}
+                </DialogTitle>
+                <span className="w-full h-[1px] bg-[#f6f6f6]"></span>
               </DialogHeader>
 
-              <div className="space-y-4 pt-4">
-                <form onSubmit={handleSubmit(onFormSubmit)}>
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Label htmlFor="name">Name*</Label>
-                      {errors.name && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {errors.name.message}
-                        </p>
-                      )}
-                    </div>
+              <form
+                onSubmit={handleSubmit(onSubmit)}
+                className="space-y-6 pt-4"
+                autoComplete="off"
+              >
+                <div className="flex items-center gap-4">
+                  <Label
+                    htmlFor="name"
+                    className="w-[120px] font-normal text-sm relative"
+                  >
+                    Name{" "}
+                    <span className="text-red-500 absolute -top-[2px] left-10">
+                      *
+                    </span>
+                  </Label>
+                  <div className="flex-1">
                     <Input
                       id="name"
                       placeholder="Enter Mode Name"
-                      {...register("name", { required: "Name is required" })}
+                      {...register("name")}
+                      maxLength={51}
                     />
+                    {errors.name && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.name.message}
+                      </p>
+                    )}
                   </div>
+                </div>
 
-                  <div>
-                    <Label htmlFor="description">Description</Label>
-                    <Input
+                <div className="flex items-center gap-4">
+                  <Label
+                    htmlFor="description"
+                    className="w-[120px] text-sm font-normal"
+                  >
+                    Description
+                  </Label>
+                  <div className="flex-1">
+                    <Textarea
                       id="description"
                       placeholder="Enter Description"
+                      className="w-full resize-none bg-white"
                       {...register("description")}
+                      maxLength={501}
                     />
+                    {errors.description && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.description.message}
+                      </p>
+                    )}
                   </div>
+                </div>
 
-                  <div className="flex justify-end gap-4 pt-4">
-                    <Button variant="outline" onClick={() => setIsOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button type="submit" className="bg-primary">
-                      {editMode ? "Save Changes" : "Save"}
-                    </Button>
-                  </div>
-                </form>
-              </div>
+                <div className="flex justify-center gap-4 pt-4">
+                  <Button
+                    type="submit"
+                    className="bg-[#4588f0] py-[5px] px-4 text-base font-normal rounded-full hover:bg-[#3774d1] "
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting
+                      ? editMode
+                        ? "Saving..."
+                        : "Submitting..."
+                      : editMode
+                      ? "Save Changes"
+                      : "Save"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="bg-[#f5f5f5]  rounded-full text-[#787878] hover:bg-[#e1e1e1] border border-[#d4d4d4] py-[5px] px-4 text-base font-normal font-normal hover:text-[787878]"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
             </DialogContent>
           </Dialog>
 
-          {/* Pagination */}
-          <div className="flex items-center space-x-3 text-sm text-gray-700">
-            <span>
-              1 - {modes.length} of {modes.length}
-            </span>
-            <div className="flex items-center">
-              <button className="p-1.5 rounded hover:bg-gray-100 ml-2">
-                <FaChevronLeft size={20} className="text-gray-300" />
-              </button>
-              <button className="p-1.5 rounded hover:bg-gray-100">
-                <FaChevronRight size={20} className="text-gray-300" />
-              </button>
-
-              {/* Search Icon */}
-              <button className="p-1.5 rounded hover:bg-gray-100">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="h-4 w-4 text-gray-500"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z"
-                  />
-                </svg>
-              </button>
-
-              {/* Table Icon */}
-              <button className="p-1.5 rounded hover:bg-gray-100">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="h-4 w-4 text-gray-500"
-                >
-                  <rect x="3" y="4" width="18" height="16" rx="2" />
-                  <path d="M3 10h18M10 4v16" />
-                </svg>
-              </button>
-            </div>
+          {/* Search */}
+          <div className="relative flex-1 min-w-[190px] lg:flex-none lg:w-[125px]">
+            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search by name"
+              className="pl-9 bg-white py-[4px] rounded"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
           </div>
         </div>
 
-        {/* ✅ Table */}
-        <div className="w-full overflow-visible">
-          <Table className="w-full border-0 overflow-visible">
+        {/* Table */}
+        <div className="overflow-visible border-b border-gray-200">
+          <Table className="min-w-[600px] w-full text-sm">
             <TableHeader>
-              <TableRow>
-                <TableHead>
-                  <div className="flex items-center">
+              <TableRow className="py-1 border-t">
+                <TableHead className="w-10 h-[37px]"></TableHead>
+                <TableHead className="min-w-[150px] lg:text-xs font-semibold leading-[36px]  text-[#515526]">
+                  <div
+                    className="flex items-center cursor-pointer select-none"
+                    onClick={() => handleSort("name")}
+                  >
                     Name
-                    <IoIosArrowRoundUp size={14} className="ml-1" />
+                    {sortBy === "name" &&
+                      (sortOrder === "asc" ? (
+                        <ArrowUp size={14} className="ml-1 text-gray-600" />
+                      ) : (
+                        <ArrowDown size={14} className="ml-1 text-gray-600" />
+                      ))}
                   </div>
                 </TableHead>
-                <TableHead>Description</TableHead>
+                <TableHead className="min-w-[250px] lg:text-xs font-semibold leading-[36px] text-[#515526] ">
+                  <div
+                    className="flex items-center cursor-pointer select-none"
+                    onClick={() => handleSort("description")}
+                  >
+                    Description
+                    {sortBy === "description" &&
+                      (sortOrder === "asc" ? (
+                        <ArrowUp size={14} className="ml-1 text-gray-600" />
+                      ) : (
+                        <ArrowDown size={14} className="ml-1 text-gray-600" />
+                      ))}
+                  </div>
+                </TableHead>
               </TableRow>
             </TableHeader>
-
             <TableBody>
-              {modes.map((mode, index) => (
-                <TableRow key={index}>
-                  <TableCell>
-                    <div className="flex items-center space-x-3 text-gray-700 relative group">
-                      {/* ✅ Dropdown menu (settings) */}
+              {tableLoading ? (
+                [...Array(itemsPerPage)].map((_, i) => (
+                  <TableRow key={i} className="p-3">
+                    <TableCell>
+                      <Skeleton className="h-4 w-4 rounded-full" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-[120px]" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-[220px]" />
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : modes.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={3}
+                    className="text-center py-6 text-gray-500"
+                  >
+                    No data found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                modes.map((m) => (
+                  <TableRow key={m.id} className="hover:bg-gray-50 bg-white">
+                    <TableCell className="p-2 text-xs">
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="p-1 hover:bg-gray-100 rounded">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              strokeWidth={1.8}
-                              stroke="currentColor"
-                              className="h-5 w-5 text-gray-500"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.591 1.054c1.527-.878 3.313.908 2.435 2.435a1.724 1.724 0 001.055 2.591c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.055 2.591c.878 1.527-.908 3.313-2.435 2.435a1.724 1.724 0 00-2.591 1.055c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.591-1.055c-1.527.878-3.313-.908-2.435-2.435a1.724 1.724 0 00-1.055-2.591c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.055-2.591c-.878-1.527.908-3.313 2.435-2.435.996.572 2.165.153 2.591-1.054z"
-                              />
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                              />
-                            </svg>
-                          </button>
+                        <DropdownMenuTrigger className="flex items-center gap-2 hover:bg-gray-100 rounded p-1 w-full">
+                          <Settings className="w-4 h-4 text-gray-500" />
                         </DropdownMenuTrigger>
-
-                        <div className="absolute top-7 left-10 -translate-x-1/2 bg-white text-black text-[11px] font-medium px-2 py-[1px] border-t-2 border-l-2 border-r-2 border-black rounded shadow-sm opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap">
-                          Action
-                        </div>
-
                         <DropdownMenuContent
                           align="start"
-                          className="w-[140px]"
+                          sideOffset={4}
+                          className="z-50 w-[140px]"
                         >
-                          <DropdownMenuItem
-                            onClick={() => handleEditMode(index)}
-                            className="cursor-pointer text-black"
-                          >
+                          <DropdownMenuItem onClick={() => handleEdit(m)}>
                             Edit Mode
                           </DropdownMenuItem>
-                          <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            onClick={() => handleDeleteMode(index)}
-                            className="cursor-pointer text-black"
+                            onClick={() => {
+                              setCurrentMode(m);
+                              setShowDelete(true);
+                            }}
                           >
                             Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-
-                      <span>{mode.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{mode.description}</TableCell>
-                </TableRow>
-              ))}
+                    </TableCell>
+                    <TableCell
+                      className="p-2 text-xs sm:text-sm cursor-pointer hover:underline"
+                      onClick={() => handleEdit(m)}
+                    >
+                      {m.name}
+                    </TableCell>
+                    <TableCell className="p-2 lg:text-xs sm:text-sm max-w-[400px] truncate">
+                      {m.description}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>
+
+        {/* Pagination */}
+        {!tableLoading && (
+          <div className="flex items-center justify-between mt-6">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Show</span>
+              <Select
+                value={String(itemsPerPage)}
+                onValueChange={(value) => {
+                  setItemsPerPage(Number(value));
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="w-16">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                </SelectContent>
+              </Select>
+              <span className="text-sm text-gray-600 whitespace-nowrap">
+                Per Page
+              </span>
+            </div>
+            <div>
+              <MuiStylePagination
+                totalPages={pagination.totalPages}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation */}
+        <AlertDialog open={showDelete} onOpenChange={setShowDelete}>
+          <AlertDialogContent className="rounded-xl py-2 px-0 bg-white">
+            <AlertDialogHeader className="border-b">
+              <AlertDialogTitle className="text-red-600 px-3">
+                Delete
+              </AlertDialogTitle>
+            </AlertDialogHeader>
+            <AlertDialogDescription className="px-3">
+              Do you want to delete the selected Mode?
+            </AlertDialogDescription>
+            <AlertDialogFooter className="px-3 mb-2">
+              <AlertDialogCancel className="rounded-full px-6">
+                Cancel
+              </AlertDialogCancel>
+              <Button
+                onClick={confirmDelete}
+                className="bg-red-600 text-white rounded-full px-6 hover:bg-red-700 transition"
+                disabled={deleteLoading}
+              >
+                {deleteLoading ? "Deleting..." : "Confirm"}
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </Helpdesk>
   );

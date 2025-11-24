@@ -40,7 +40,6 @@ import { Search } from "lucide-react";
 
 import searchIcons from "@/assets/svg-icons/search-icons.svg";
 import plusIcon from "@/assets/svg-icons/plus-icon.svg";
-import tableBottomIcon from "@/assets/svg-icons/table-bottom-icon.svg";
 
 const assets = [
   {
@@ -331,11 +330,6 @@ const Assets = () => {
               &gt;
             </Button>
           </div>
-        </div>
-
-        <div className="flex items-center justify-end gap-2 text-sm font-medium text-[#5C71B6] pt-8 pb-6">
-          <span>© 2025 Vertex. All Rights Reserved.</span>
-          <img alt="tableBottomIcon" src={tableBottomIcon} />
         </div>
       </Card>
     </MainLayout>

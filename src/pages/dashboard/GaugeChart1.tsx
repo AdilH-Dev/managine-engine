@@ -8,7 +8,7 @@ const GaugeChart: React.FC = () => {
     if (!chartRef.current) return;
 
     const chartInstance = echarts.init(chartRef.current);
-    const value = 19; // current needle value
+    const value = 18; // current needle value
 
     const option: echarts.EChartsOption = {
       series: [
@@ -22,21 +22,43 @@ const GaugeChart: React.FC = () => {
               width: 12,
               color: [
                 [value / 28, "#E42527"], // red progress till value
-                [1, "#D3D3D3"],           // grey remaining
+                [1, "#D3D3D3"], // grey remaining
               ],
             },
           },
           progress: { show: false },
-          pointer: { itemStyle: { color: "gray" } },
-          axisTick: { distance: -20, length: 6, lineStyle: { color: "#A9A9A9", width: 2 } },
-          splitLine: { distance: -25, length: 12, lineStyle: { color: "#A9A9A9", width: 2 } },
+          pointer: {
+            length: "65%",
+            width: 8,
+            itemStyle: {
+              color: "gray",
+              borderColor: "#000000",
+              borderWidth: 1.5,
+            },
+          },
+          axisTick: {
+            distance: -20,
+            length: 6,
+            lineStyle: { color: "#A9A9A9", width: 2 },
+          },
+          splitLine: {
+            distance: -25,
+            length: 12,
+            lineStyle: { color: "#A9A9A9", width: 2 },
+          },
           axisLabel: {
             distance: -15,
             fontSize: 12,
-            color: "#b6b5b5ff",
-            formatter: (val: number) => (val % 2 === 0 && val <= 28 ? val.toString() : ""),
+            color: "#666",
+            formatter: (val: number) =>
+              val % 2 === 0 && val <= 28 ? val.toString() : "",
           },
-          detail: { valueAnimation: true, formatter: "{value}", color: "#E42527", fontSize: 13 },
+          detail: {
+            valueAnimation: true,
+            formatter: "{value}",
+            color: "#E42527",
+            fontSize: 13,
+          },
           data: [{ value }],
         },
       ],
@@ -56,19 +78,22 @@ const GaugeChart: React.FC = () => {
   return (
     <div className="flex flex-col items-center p-3">
       {/* Chart */}
-      <div
-        ref={chartRef}
-        style={{ width: "100%", height: "230px" }}
-      />
+      <div ref={chartRef} style={{ width: "100%", height: "230px" }} />
 
       {/* Legends below the chart */}
       <div className="flex gap-4 mt-3">
         <div className="flex items-center gap-1">
-          <span className="w-2 h-2 " style={{ backgroundColor: "#E42527" }}></span>
-          <span className="text-[12px] text-gray-700">SLA Violated (19)</span>
+          <span
+            className="w-2 h-2 "
+            style={{ backgroundColor: "#E42527" }}
+          ></span>
+          <span className="text-[12px] text-gray-700">SLA Violated (18)</span>
         </div>
         <div className="flex items-center gap-1">
-          <span className="w-2 h-2 " style={{ backgroundColor: "#D3D3D3" }}></span>
+          <span
+            className="w-2 h-2 "
+            style={{ backgroundColor: "#D3D3D3" }}
+          ></span>
           <span className="text-[12px] text-gray-700">Open (28)</span>
         </div>
       </div>

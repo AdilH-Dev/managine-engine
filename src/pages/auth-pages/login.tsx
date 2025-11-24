@@ -70,17 +70,19 @@ const Login = () => {
       {/* Left Section */}
       <div className="hidden md:flex flex-col justify-between items-center w-1/2 bg-gray-50 px-10 py-6">
         <div className="flex flex-col items-center text-center flex-grow justify-center">
-          <img src={vertaxLogo} alt="Vertax Logo" className="w-32 mb-6" />
+          <img src={vertaxLogo} alt="Vertax Logo" className="w-52 mb-6" />
 
           <h2 className="text-2xl font-semibold mb-2 text-gray-800">
-            Effortless Ticket Tracking & Resolution
+            {/* Effortless Ticket Tracking & Resolution */}
+            Efficient Support Operations
           </h2>
 
           <p className="text-gray-600 text-sm leading-relaxed max-w-sm mb-6">
-            Empower your team to manage, assign, and resolve support tickets
+            {/* Empower your team to manage, assign, and resolve support tickets
             efficiently while keeping customers happy. Streamline workflows,
             automate repetitive tasks, and track every issue in real time for
-            faster, smarter resolutions.
+            faster, smarter resolutions. */}
+            Empower teams to resolve customer requests quickly through organized, automated ticket management.
           </p>
 
           {/* Image with controlled height */}
@@ -94,7 +96,7 @@ const Login = () => {
         {/* Footer */}
         <div className="flex items-center justify-between w-full text-gray-500 text-xs mt-4">
           <div className="flex items-center">
-            <p className="mr-2">© 2023 Vertex. All Rights Reserved.</p>
+            <p className="mr-2">© 2025 Viper Desk. All Rights Reserved.</p>
             <img src={favIconVertax} alt="favicon" className="w-6 h-6" />
           </div>
           <p>Ver. 1.1.0</p>

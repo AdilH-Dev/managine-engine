@@ -1,3 +1,9 @@
+@import "@fontsource/roboto/100.css";
+@import "@fontsource/roboto/300.css";
+@import "@fontsource/roboto/400.css";
+@import "@fontsource/roboto/500.css";
+@import "@fontsource/roboto/700.css";
+@import "@fontsource/roboto/900.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,6 +13,9 @@ All colors MUST be HSL.
 */
 
 @layer base {
+  html, body {
+    @apply font-sans;
+  }
   :root {
     --background: 0 0% 96%;
     --foreground: 215 25% 27%;

@@ -1,4 +1,4 @@
-import { MainLayout } from "@/components/Layout/MainLayout";
+// import { MainLayout } from "@/components/Layout/MainLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +23,6 @@ import { MoreVertical, Search } from "lucide-react";
 import { useState } from "react";
 // import { useNavigate } from "react-router-dom";
 import plusIcon from "@/assets/svg-icons/plus-icon.svg";
-import tableBottomIcon from "@/assets/svg-icons/table-bottom-icon.svg";
 
 const companies = [
   {
@@ -63,7 +62,7 @@ const Company = () => {
   // const navigate = useNavigate();
 
   return (
-    <MainLayout title="Setup">
+    <>
       <div className="mb-6 bg-white px-[24px] py-[15px] flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <h2 className="text-xl font-semibold text-foreground flex-shrink-0">
           Company
@@ -246,13 +245,8 @@ const Company = () => {
             </Button>
           </div>
         </div>
-
-        <div className="flex items-center justify-end gap-2 text-sm font-medium text-[#5C71B6] pt-8 pb-6">
-          <span>© 2025 Vertex. All Rights Reserved.</span>
-          <img alt="tableBottomIcon" src={tableBottomIcon} />
-        </div>
       </Card>
-    </MainLayout>
+    </>
   );
 };
 

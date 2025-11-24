@@ -24,6 +24,7 @@ const menuItems = [
         group: "Instance Configurations",
         items: [
           { path: "/setup/company", label: "Company" },
+          { path: "/setup/regions", label: "Regions" },
           { path: "/setup/site", label: "Site" },
           { path: "/setup/department", label: "Department" },
         ],
@@ -52,13 +53,15 @@ const menuItems = [
         items: [
           { path: "/setup/assets-type", label: "Assets Type" },
           { path: "/setup/assets", label: "Assets" },
+          { path: "/setup/new-assets", label: "NewAssets" },
+          { path: "/setup/new-button", label: "NewButton" },
         ],
       },
     ],
   },
 
   { path: "/notification", icon: notificationIcon, label: "Notification" },
-  { path: "/roles", icon: permissionsIcon, label: "Roles & Permissions" },
+  { path: "/assets/new-assets", icon: permissionsIcon, label: "Assets" },
 ];
 
 export const Sidebar = () => {
@@ -66,9 +69,9 @@ export const Sidebar = () => {
   const navigate = useNavigate();
 
   // Find which parent is active
-  const activeParent = menuItems.find((item) =>
-    location.pathname.startsWith(item.path)
-  );
+  // const activeParent = menuItems.find((item) =>
+  //   location.pathname.startsWith(item.path)
+  // );
 
   // Handle parent click
   const handleParentClick = (item) => {
@@ -111,7 +114,7 @@ export const Sidebar = () => {
       </aside>
 
       {/* Sub Sidebar */}
-      {activeParent?.children && (
+      {/* {activeParent?.children && (
         <aside className="w-48 bg-white border-r border-gray-200 min-h-screen p-4">
           <h2 className="text-sm font-semibold text-gray-500 mb-3">
             {activeParent.label}
@@ -143,7 +146,7 @@ export const Sidebar = () => {
             </div>
           ))}
         </aside>
-      )}
+      )} */}
     </div>
   );
 };

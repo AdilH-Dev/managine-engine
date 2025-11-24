@@ -33,7 +33,6 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import plusIcon from "@/assets/svg-icons/plus-icon.svg";
-import tableBottomIcon from "@/assets/svg-icons/table-bottom-icon.svg";
 
 const defaultPermissions: Permission[] = [
   {
@@ -295,7 +294,7 @@ const Roles = () => {
 
   return (
     <>
-      <MainLayout title="Setup">
+      {/* <MainLayout title="Setup"> */}
         {/* Header + Create Campaign Button */}
         <div className="mb-6 bg-white px-[24px] py-[15px] flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <h2 className="text-xl font-semibold text-foreground flex-shrink-0">
@@ -498,13 +497,8 @@ const Roles = () => {
               </Button>
             </div>
           </div>
-
-          <div className="flex items-center justify-end gap-2 text-sm font-medium text-[#5C71B6] pt-8 pb-6">
-            <span>© 2025 Vertex. All Rights Reserved.</span>
-            <img alt="tableBottomIcon" src={tableBottomIcon} />
-          </div>
         </Card>
-      </MainLayout>
+      {/* </MainLayout> */}
 
       {/* <MainLayout title="Setup">
         <div className="min-h-screen bg-background p-8">

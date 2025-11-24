@@ -1,22 +1,21 @@
-import { MainLayout } from "@/components/Layout/MainLayout";
-import { Card } from "@/components/ui/card";
+import { useEffect, useState } from "react";
+import { useForm, SubmitHandler } from "react-hook-form";
+import { ArrowUp, ArrowDown, Settings, Search } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/hooks/use-toast";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { siteSchema, SiteFormInputs } from "@/lib/validation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useNavigate } from "react-router-dom";
+import AddSite from "./AddSite";
+import { MuiStylePagination } from "@/components/common/MuiStylePagination";
 import {
   Select,
+  SelectTrigger,
   SelectContent,
   SelectItem,
-  SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,384 +23,415 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Table,
+  TableHead,
+  TableRow,
+  TableHeader,
   TableBody,
   TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
 } from "@/components/ui/table";
-import { MoreVertical } from "lucide-react";
-import { useState } from "react";
-import plusIcon from "@/assets/svg-icons/plus-icon.svg";
-import tableBottomIcon from "@/assets/svg-icons/table-bottom-icon.svg";
-import clearIcon from "@/assets/svg-icons/clear-icon.svg";
-import { Search } from "lucide-react";
-import searchIcons from "@/assets/svg-icons/search-icons.svg";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { requestTypeService, siteServices } from "@/services/setupService";
+import { Setup } from "@/services/setupService";
+import Helpdesk from "./healper/Helpdesk";
+const extractErrorMessage = (error: any): string => {
+  if (!error) return "Something went wrong.";
 
-const sites = [
-  {
-    id: 1,
-    company: "Summit Innovations",
-    siteName: "Head Office",
-    country: "Pakistan",
-    city: "Wilson",
-    address: "45409 Schimmel Lodge...",
-  },
-  {
-    id: 2,
-    company: "BlueWave Technologies",
-    siteName: "Head Office",
-    country: "United States",
-    city: "Brooklyn Park",
-    address: "240 Arvilla Road, Bellflower 56927",
-  },
-  {
-    id: 3,
-    company: "PrimeCore Systems",
-    siteName: "Branch A",
-    country: "United Kingdom",
-    city: "Lake Charlotte",
-    address: "28080 Medhurst Falls, Merritview 75082",
-  },
-  {
-    id: 4,
-    company: "NextGen Solutions",
-    siteName: "Head Office",
-    country: "Canada",
-    city: "Marquardttown",
-    address: "584 Gisselle Garden, Bossier City",
-  },
-  {
-    id: 5,
-    company: "Elevate Enterprises",
-    siteName: "Branch A",
-    country: "United Arab Emirates (UAE)",
-    city: "Methurstborough",
-    address: "12684 N Poplar Street, South Darren...",
-  },
-];
+  const data = error.response?.data;
+  if (!data) return error.message || "Something went wrong.";
+
+  if (data.message) return data.message;
+  if (data.Message) return data.Message;
+  if (data.error) return data.error;
+  if (data.Error) return data.Error;
+
+  if (data.errors) {
+    const firstError = Object.values(data.errors)[0];
+    return Array.isArray(firstError) ? firstError[0] : String(firstError);
+  }
+
+  if (error.message) return error.message;
+
+  return "Something went wrong. Please try again.";
+};
+
+interface FormInputs {
+  name: string;
+  description: string;
+  province?: string;
+  address?: string;
+  email?: string;
+  phone?: string;
+  fax?: string;
+  website?: string;
+}
+
 
 const Site = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleteLoading, setdeleteLoading] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [selectedTask, setSelectedTask] = useState<Setup | null>(null);
+  const [data, setData] = useState<Setup[]>([]);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
-  const countryCityMap = {
-    Pakistan: [
-      "Karachi",
-      "Lahore",
-      "Islamabad",
-      "Rawalpindi",
-      "Faisalabad",
-      "Multan",
-      "Peshawar",
-      "Quetta",
-      "Sialkot",
-      "Hyderabad",
-    ],
-    India: [
-      "Delhi",
-      "Mumbai",
-      "Bangalore",
-      "Chennai",
-      "Kolkata",
-      "Hyderabad",
-      "Pune",
-      "Ahmedabad",
-    ],
-    USA: [
-      "New York",
-      "Los Angeles",
-      "Chicago",
-      "Houston",
-      "San Francisco",
-      "Miami",
-    ],
-    UK: ["London", "Manchester", "Birmingham", "Liverpool", "Leeds"],
-    UAE: ["Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Fujairah"],
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const navigate = useNavigate();
+  const [totalPages, setTotalPages] = useState(1);
+  const [statusFilter, setStatusFilter] = useState("active");
+
+
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<SiteFormInputs>({
+    resolver: zodResolver(siteSchema),
+  });
+
+
+
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      fetchSite();
+    }, 600);
+    return () => clearTimeout(delayDebounce);
+  }, [searchTerm, sortOrder, currentPage, itemsPerPage]);
+
+
+  const fetchSite = async () => {
+    setLoading(true);
+    try {
+      const result = await siteServices.getAll({
+        page: currentPage,
+        limit: itemsPerPage,
+        sort_by: "name",
+        search: searchTerm.trim(),
+        status: statusFilter,
+        sort_order: sortOrder,
+      });
+
+      setData(result.data || []);
+      if (result.pagination && result.pagination.totalPages) {
+        setTotalPages(result.pagination.totalPages);
+      } else {
+        setTotalPages(1);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: extractErrorMessage(error),
+        variant: "destructive",
+      });
+    } finally {
+      // Small delay for smoother skeleton transition
+      setTimeout(() => setLoading(false), 500);
+    }
   };
 
-  const [country, setCountry] = useState("");
-  const [city, setCity] = useState("");
-  const handleCountryChange = (value) => {
-    setCountry(value);
-    setCity(""); // reset city when country changes
+  const toggleSort = () => {
+    const newOrder = sortOrder === "asc" ? "desc" : "asc";
+    setSortOrder(newOrder);
   };
+
+
+  const onSubmit = async (formData: SiteFormInputs) => {
+    setActionLoading(true);
+    setServerError(null);
+    try {
+      if (selectedTask) {
+        const res = await siteServices.update(selectedTask.id, formData);
+        toast({
+          title: "Success",
+          description: res?.message || "Updated successfully.",
+        });
+        console.log(res);
+      } else {
+        const res = await siteServices.create(formData as Setup);
+        toast({
+          title: "Success",
+          description: res?.message || "Created successfully.",
+        });
+      }
+      fetchSite();
+      setIsOpen(false);
+      reset();
+      setSelectedTask(null);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: extractErrorMessage(error),
+        variant: "destructive",
+      });
+    }
+    finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleEdit = (item: Setup) => {
+  navigate(`/setup/add-site?id=${item.id}`, { state: { siteData: item } });
+};
+
+
+  const handleDelete = async () => {
+    if (!selectedTask) return;
+    setdeleteLoading(true);
+    try {
+      const res = await siteServices.delete(selectedTask.id);
+      await fetchSite();
+      toast({
+        title: "Deleted",
+        description: res?.message || "Record deleted successfully.",
+      });
+      setShowDelete(false);
+      setSelectedTask(null);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: extractErrorMessage(error),
+        variant: "destructive",
+      });
+    } finally {
+      setdeleteLoading(false);
+    }
+  };
+
+
 
   return (
-    <MainLayout title="Setup">
-      <div className="mb-6 bg-white px-[24px] py-[15px] flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <h2 className="text-xl font-semibold text-foreground flex-shrink-0">
-          Site
-        </h2>
-
-        {/* Filter Section */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative flex-1 min-w-[125px] lg:flex-none lg:w-[125px]">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Search" className="pl-9 bg-white" />
-          </div>
-
-          <Select>
-            <SelectTrigger className="w-[125px] bg-white">
-              <SelectValue placeholder="Company" />
-            </SelectTrigger>
-            <SelectContent className="bg-white">
-              <SelectItem value="summit">Summit Innovations</SelectItem>
-              <SelectItem value="bluewave">BlueWave Technologies</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select>
-            <SelectTrigger className="w-[125px] bg-white">
-              <SelectValue placeholder="City" />
-            </SelectTrigger>
-            <SelectContent className="bg-white">
-              <SelectItem value="karachi">Karachi</SelectItem>
-              <SelectItem value="lahore">Lahore</SelectItem>
-              <SelectItem value="islamabad">Islamabad</SelectItem>
-              <SelectItem value="rawalpindi">Rawalpindi</SelectItem>
-              <SelectItem value="faisalabad">Faisalabad</SelectItem>
-              <SelectItem value="multan">Multan</SelectItem>
-              <SelectItem value="quetta">Quetta</SelectItem>
-              <SelectItem value="peshawar">Peshawar</SelectItem>
-              <SelectItem value="sialkot">Sialkot</SelectItem>
-              <SelectItem value="hyderabad">Hyderabad</SelectItem>
-              <SelectItem value="karachi">Karachi</SelectItem>
-              <SelectItem value="lahore">Lahore</SelectItem>
-              <SelectItem value="islamabad">Islamabad</SelectItem>
-              <SelectItem value="rawalpindi">Rawalpindi</SelectItem>
-              <SelectItem value="faisalabad">Faisalabad</SelectItem>
-              <SelectItem value="multan">Multan</SelectItem>
-              <SelectItem value="quetta">Quetta</SelectItem>
-              <SelectItem value="peshawar">Peshawar</SelectItem>
-              <SelectItem value="sialkot">Sialkot</SelectItem>
-              <SelectItem value="hyderabad">Hyderabad</SelectItem>
-              <SelectItem value="karachi">Karachi</SelectItem>
-              <SelectItem value="lahore">Lahore</SelectItem>
-              <SelectItem value="islamabad">Islamabad</SelectItem>
-              <SelectItem value="rawalpindi">Rawalpindi</SelectItem>
-              <SelectItem value="faisalabad">Faisalabad</SelectItem>
-              <SelectItem value="multan">Multan</SelectItem>
-              <SelectItem value="quetta">Quetta</SelectItem>
-              <SelectItem value="peshawar">Peshawar</SelectItem>
-              <SelectItem value="sialkot">Sialkot</SelectItem>
-              <SelectItem value="hyderabad">Hyderabad</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Button
-            variant="outline"
-            size="icon"
-            className="bg-[#DEDEDE] hover:bg-[#DEDEDE]/90"
-          >
-            <img alt="clearIcon" src={clearIcon} />
-          </Button>
-
-          <Button
-            variant="default"
-            size="icon"
-            className="bg-primary hover:bg-primary/90"
-          >
-            <img alt="searchIcons" src={searchIcons} />
-          </Button>
-        </div>
-
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger asChild>
-            {/* <Button className="bg-primary flex items-center gap-2">
-                Add Site <Plus className="w-4 h-4" />
-              </Button> */}
-            <Button className="w-[160px] rounded-none bg-primary text-primary-foreground hover:bg-primary/90">
-              Add Site
-              <span className="h-[18px] w-[18px] mr-2 rounded-full bg-white text-primary flex items-center justify-center">
-                <img alt="plusIcon" src={plusIcon} />
-              </span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[700px] bg-white">
-            <DialogHeader>
-              <DialogTitle className="text-[20px] font-bold">
-                Add Site
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="company">Company*</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Company" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="summit">Summit Innovations</SelectItem>
-                      <SelectItem value="bluewave">
-                        BlueWave Technologies
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="siteName">Site Name*</Label>
-                  <Input id="siteName" placeholder="Enter Site Name" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="country">Country*</Label>
-                  <Select onValueChange={handleCountryChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Country" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white">
-                      {Object.keys(countryCityMap).map((countryName) => (
-                        <SelectItem key={countryName} value={countryName}>
-                          {countryName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="city">City*</Label>
-                  <Select
-                    disabled={!country}
-                    onValueChange={setCity}
-                    value={city}
-                  >
-                    <SelectTrigger>
-                      <SelectValue
-                        placeholder={
-                          country ? "Select City" : "Select Country First"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white">
-                      {country &&
-                        countryCityMap[country].map((cityName) => (
-                          <SelectItem key={cityName} value={cityName}>
-                            {cityName}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="address">Address*</Label>
-                <Input id="address" placeholder="Enter" />
-              </div>
-              <div className="h-40 bg-gray-100 rounded flex items-center justify-center text-gray-500">
-                Map Preview
-              </div>
-              <div className="flex justify-end gap-4 pt-4">
-                <Button
-                  variant="outline"
-                  className="bg-white w-[140px] h-[44px]"
-                  onClick={() => {
-                    setIsOpen(false);
-                    setCountry("");
-                    setCity("");
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  className="bg-primary w-[140px] h-[44px]"
-                  onClick={() => {
-                    setIsOpen(false);
-                    setCountry("");
-                    setCity("");
-                  }}
-                >
-                  Add
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-      <Card className="px-6 rounded-none border-none">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead >Sr</TableHead>
-              <TableHead >Company</TableHead>
-              <TableHead >Site Name</TableHead>
-              <TableHead >Country</TableHead>
-              <TableHead >City</TableHead>
-              <TableHead >Address</TableHead>
-              <TableHead >Action</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sites.map((site) => (
-              <TableRow key={site.id}>
-                <TableCell>{site.id}</TableCell>
-                <TableCell>{site.company}</TableCell>
-                <TableCell>{site.siteName}</TableCell>
-                <TableCell>{site.country}</TableCell>
-                <TableCell>{site.city}</TableCell>
-                <TableCell>{site.address}</TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                      <DropdownMenuTrigger className="flex items-center justify-center gap-2 hover:bg-gray-100 rounded p-1 w-full">
-                        <MoreVertical className="w-4 h-4" />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
-                        <DropdownMenuItem>Delete</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-
-        <div className="flex items-center justify-between mt-6">
+    <>
+      <div className="min-h-screen bg-white p-4">
+        {/* Header */}
+        {/* Header */}
+        <div className="flex items-center justify-between border-b pt-2 bg-white border-[#e6e6e6] border-dotted">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">Show</span>
-            <Select defaultValue="5">
-              <SelectTrigger className="w-16">
-                <SelectValue />
+            <h2 className="text-xl font-semibold text-foreground leading-[40px]">
+              Sites
+            </h2>
+            <span className="text-gray-400">|</span>
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => {
+                setStatusFilter(value);
+                setCurrentPage(1);
+                fetchSite(); // refresh when changing
+              }}
+            >
+              <SelectTrigger className="w-[70px] h-[28px] bg-white border-none text-gray-600 text-sm focus:ring-gray-400 rounded-none  focus:outline-none p-0">
+                <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="5">5</SelectItem>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
-            <span className="text-sm text-gray-600">Per Page</span>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm">
-              &lt;
-            </Button>
-            <Button size="sm" className="bg-primary">
-              1
-            </Button>
-            <Button variant="outline" size="sm">
-              2
-            </Button>
-            <Button variant="outline" size="sm">
-              3
-            </Button>
-            <Button variant="outline" size="sm">
-              4
-            </Button>
-            <Button variant="outline" size="sm">
-              &gt;
-            </Button>
+
+          <button>
+            <span className="bg-blue-600 w-7 h-7 flex items-center justify-center rounded-full text-white text-sm">
+              ?
+            </span>
+          </button>
+        </div>
+
+
+        {/* Add Button */}
+        <div className="bg-white flex justify-between items-center">
+          <Button
+            // disabled={loading || actionLoading}
+           className="mt-[10px] mb-[6px] bg-white h-auto text-[#333333] text-xs font-normal rounded-[4px] border border-[#ccd3de] px-[10px] py-[3px] hover:bg-gray-100 focus:outline-none  focus:border-blue-500"
+            onClick={() => navigate("/setup/add-site")}
+          >
+            New Site
+          </Button>
+
+             <div className="relative flex-1 min-w-[190px] lg:flex-none lg:w-[125px]">
+            <Input
+              placeholder="Search"
+              className="pr-9 bg-white"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value)
+                setCurrentPage(1);}}
+            />
+            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 text-sm font-medium text-[#5C71B6] pt-8 pb-6">
-          <span>© 2025 Vertex. All Rights Reserved.</span>
-          <img alt="tableBottomIcon" src={tableBottomIcon} />
+        {/* Table */}
+        <div className="overflow-visible">
+          <Table className="min-w-[600px] w-full text-sm">
+            <TableHeader>
+              <TableRow className="py-1">
+                <TableHead className="w-10 text-xs"></TableHead>
+                <TableHead className="min-w-[150px] text-xs sm:text-sm">
+                  <div
+                    className="flex items-center cursor-pointer select-none"
+                    onClick={toggleSort}
+                  >
+                    Name
+                    {sortOrder === "asc" ? (
+                      <ArrowUp size={14} className="ml-1 text-gray-600" />
+                    ) : (
+                      <ArrowDown size={14} className="ml-1 text-gray-600" />
+                    )}
+                  </div>
+                </TableHead>
+                <TableHead className="min-w-[250px] text-xs sm:text-sm text-gray-500">
+                  Region
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+
+            <TableBody>
+              {loading
+                ? [...Array(itemsPerPage)].map((_, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      <Skeleton className="h-4 w-4 rounded-full" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-[120px]" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-[220px]" />
+                    </TableCell>
+                  </TableRow>
+                ))
+                : data.length === 0
+                  ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={3}
+                        className="text-center py-6 text-gray-500"
+                      >
+                        No data available.
+                      </TableCell>
+                    </TableRow>
+                  )
+                  : data.map((item) => (
+                    <TableRow key={item.id} className="hover:bg-gray-50 bg-white">
+                      <TableCell className="py-1 text-xs">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger className="flex items-center gap-2 hover:bg-gray-100 rounded p-1 w-full">
+                            <Settings className="w-4 h-4 text-gray-500" />
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="start"
+                            sideOffset={4}
+                            className="z-50 w-[140px]"
+                          >
+                            <DropdownMenuItem disabled={actionLoading} onClick={() => handleEdit(item)}>
+                              Edit Site
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedTask(item);
+                                setShowDelete(true);
+                              }}
+                              disabled={actionLoading}
+                            >
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+
+                      <TableCell
+                        className="py-2 text-xs sm:text-sm cursor-pointer hover:underline"
+                        onClick={() => handleEdit(item)}
+                      >
+                        {item.name}
+                      </TableCell>
+
+                      <TableCell className="py-2 text-xs sm:text-sm max-w-[400px] truncate">
+                        {item?.region?.name || "-"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+            </TableBody>
+          </Table>
         </div>
-      </Card>
-    </MainLayout>
+
+        {!loading && data.length > 0 && (
+          <div className="flex items-center justify-between mt-6">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Show</span>
+              <Select
+                defaultValue={String(itemsPerPage)}
+                onValueChange={(value) => {
+                  setItemsPerPage(Number(value));
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="w-16">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                </SelectContent>
+              </Select>
+              <span className="text-sm text-gray-600">Per Page</span>
+            </div>
+            <div>
+              <MuiStylePagination
+                totalPages={totalPages}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          </div>
+        )}
+
+
+        {/* Delete Dialog */}
+        <AlertDialog open={showDelete} onOpenChange={setShowDelete}>
+          <AlertDialogContent className="rounded-xl py-2 px-0 bg-white">
+            <AlertDialogHeader className="border-b">
+              <AlertDialogTitle className="text-red-600 px-3">Delete</AlertDialogTitle>
+            </AlertDialogHeader>
+            <AlertDialogDescription className="px-3">
+              Do you want to delete the "{selectedTask?.name}"?
+            </AlertDialogDescription>
+
+            <AlertDialogFooter className="px-3 mb-2">
+              <AlertDialogCancel disabled={actionLoading} className="rounded-full px-6">Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDelete}
+                disabled={deleteLoading}
+                className="bg-red-600 text-white rounded-full px-6 hover:bg-red-700 transition"
+              >
+                {deleteLoading ? "Confirming..." : "Confirm"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </>
   );
 };
 
 export default Site;
+

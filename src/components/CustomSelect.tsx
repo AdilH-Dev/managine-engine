@@ -128,7 +128,7 @@ export default function CustomSelect({
               onChange={(e) => setSearch(e.target.value)}
               autoFocus
               placeholder="Search..."
-              className="w-full border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:border-blue-500"
             />
           </div>
 

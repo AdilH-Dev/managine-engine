@@ -1,10 +1,19 @@
-import { useState } from "react";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ArrowUp, Settings } from "lucide-react";
-import { MainLayout } from "@/components/Layout/MainLayout";
+import { useEffect, useState, useRef } from "react";
+import { useForm, SubmitHandler } from "react-hook-form";
+import { ArrowUp, ArrowDown, Settings, Search } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { nameDescriptionSchema, NameDescriptionSchema } from "@/lib/validation";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { MuiStylePagination } from "@/components/common/MuiStylePagination";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,231 +44,389 @@ import {
   TableBody,
   TableCell,
 } from "@/components/ui/table";
-import { useForm } from "react-hook-form";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { requestTypeService } from "@/services/setupService";
+import { Setup } from "@/services/setupService";
 import Helpdesk from "./healper/Helpdesk";
+import { Textarea } from "@/components/ui/textarea";
 
-const item = [
-  { id: 1, icon: Settings, name: "Incident", description: "Faults and errors" },
-  {
-    id: 2,
-    icon: Settings,
-    name: "Service Request",
-    description: "User service request",
-  },
-  {
-    id: 3,
-    icon: Settings,
-    name: "Problem",
-    description: "Recurring issue tracking",
-  },
-  {
-    id: 4,
-    icon: Settings,
-    name: "Change",
-    description: "System change request",
-  },
-];
-
-const RequestType = () => {
+const RequestTypePage = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
-  const [selectedTask, setSelectedTask] = useState(null);
-  const [data, setData] = useState(item);
+  const [deleteLoading, setdeleteLoading] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Setup | null>(null);
+  const [data, setData] = useState<Setup[]>([]);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [totalPages, setTotalPages] = useState(1);
+  const newRequestButtonRef = useRef(null);
+
+
   const {
     register,
     handleSubmit,
-    formState: { errors },
-    setValue,
+    formState: { errors, isSubmitting },
     reset,
-  } = useForm();
-  const onsubmit = (data) => {
-    console.log("form submitted", data);
-    alert("Form submitted succesfully!");
-    setIsOpen(false);
+  } = useForm<NameDescriptionSchema>({
+    defaultValues: { name: "", description: "" },
+    resolver: zodResolver(nameDescriptionSchema),
+  })
+
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      fetchRequestTypes();
+    }, 600);
+    return () => clearTimeout(delayDebounce);
+  }, [searchTerm]);
+
+  const toggleSort = () => {
+    const newOrder = sortOrder === "asc" ? "desc" : "asc";
+    setSortOrder(newOrder);
   };
 
-  const handleEdit = (tasktype) => {
-    setSelectedTask(tasktype);
+  useEffect(() => {
+    fetchRequestTypes();
+  }, [currentPage, itemsPerPage, sortOrder])
+
+
+
+  const fetchRequestTypes = async () => {
+    setLoading(true);
+    try {
+      const result = await requestTypeService.getAll({
+        page: currentPage,
+        limit: itemsPerPage,
+        sort_by: "name",
+        search: searchTerm.trim(),
+        sort_order: sortOrder,
+      });
+
+      setData(result.data || []);
+      if (result.pagination && result.pagination.totalPages) {
+        setTotalPages(result.pagination.totalPages);
+      } else {
+        setTotalPages(1);
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  const onSubmit = async (formData: NameDescriptionSchema) => {
+    setActionLoading(true);
+    try {
+      if (selectedTask) {
+        const res = await requestTypeService.update(selectedTask.id, formData);
+        toast({
+          title: "Success",
+          description: res?.message,
+        });
+      } else {
+        const res = await requestTypeService.create(formData as Setup);
+        toast({
+          title: "Success",
+          description: res?.message || "",
+        });
+      }
+      fetchRequestTypes();
+      setIsOpen(false);
+      newRequestButtonRef.current?.focus();
+      reset({ name: "", description: "" });
+      setSelectedTask(null);
+    } catch (error: any) {
+      console.log(error);
+    }
+    finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleEdit = (item: Setup) => {
+    if (actionLoading) return;
+    setSelectedTask(item);
+    reset(item);
     setIsOpen(true);
-    setValue("name", tasktype.name);
-    setValue("desc", tasktype.desc);
   };
-  const handleNew = () => {
-    setSelectedTask(null);
-    reset();
-    setIsOpen(true);
+
+  const handleDelete = async () => {
+    // if (!selectedTask) return; // 🔸 don't check deleteLoading here
+    // setdeleteLoading(true);
+    try {
+      const res = await requestTypeService.delete(selectedTask.id);
+      if (res?.message) {
+        fetchRequestTypes();
+        toast({
+          title: "Deleted",
+          description: res?.message,
+        });
+      }
+    } catch (error: any) {
+      console.log(error);
+    } finally {
+      setdeleteLoading(false);
+    }
   };
-  const handleDelete = () => {
-    setData(data.filter((row) => row.id !== selectedTask.id));
-    setShowDelete(false);
-  };
+
+
 
   return (
     <Helpdesk>
-      <div className="flex items-center justify-between border-b px-4 py-2 bg-white border-[#e6e6e6] border-dotted">
-        <h2 className="text-base font-semibold text-foreground flex-shrink-0 leading-[40px]">
-          RequestType
-        </h2>
-        <span className="bg-blue-600 w-7 h-7 flex items-center justify-center rounded-full text-white text-sm">
-          ?
-        </span>
-      </div>
-      <div className="bg-white">
-        <button
-          className="mt-3 mb-2 ml-4 bg-white text-[#333333] text-xs rounded-none border border-[#ccd3de] px-3 py-1.5 hover:bg-gray-300"
-          onClick={() => {
-            setSelectedTask(null);
-            setIsOpen(true);
-          }}
-        >
-          New RequestType
-        </button>
-      </div>
+      <div className="min-h-screen bg-white p-4">
+        {/* Header */}
+        <div className="bg-white border-b border-dotted py-[6px] flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <h2 className="text-xl text-[#333333] font-normal leading-[33px]">
+            Request Type
+          </h2>
+          <div className="relative flex-1 min-w-[190px] lg:flex-none lg:w-[125px]">
+            <Input
+              placeholder="Search"
+              className="pr-9 bg-white"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          </div>
+        </div>
 
-      <Table className="bg-white">
-        <TableHeader>
-          <TableRow className="py-1">
-            <TableHead className="w-5 text-xs"></TableHead>
-            <TableHead className="text-gray-500 text-xs flex items-center gap-2">
-              Name
-              <ArrowUp size={14} />
-            </TableHead>
-            <TableHead className="text-gray-500 text-xs">Description</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.map((item) => (
-            <TableRow key={item.id}>
-              <TableCell className="py-1 text-xs ">
-                <DropdownMenu>
-                  <DropdownMenuTrigger className="flex items-center gap-2 hover:bg-gray-100  rounded p-1 w-full">
-                    <item.icon className="w-4 h-4 text-gray-500" />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="start"
-                    sideOffset={4}
-                    className="z-50 w-[140px]"
+        {/* Add Button */}
+        <div className="bg-white flex justify-between items-center">
+          <Button
+            className="mt-[9px] mb-[6px] bg-white text-xs text-[#333333] font-normal rounded-[4px] border border-[#ccd3de] px-2.5 py-[3px] h-auto hover:bg-gray-200 focus:outline-none focus:ring-0 focus:ring-blue-500 focus:border-blue-500"
+            onClick={() => {
+              setSelectedTask(null);
+              reset({ name: "", description: "" });
+              setIsOpen(true);
+            }}
+          >
+            New Request Type
+          </Button>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-visible border-b border-gray-200">
+          <Table className="min-w-[600px] w-full text-sm">
+            <TableHeader>
+              <TableRow className="py-1 border-t">
+                <TableHead className="w-[43px] h-[37px]"></TableHead>
+                <TableHead className="w-[400px] lg:text-xs font-semibold leading-[36px]">
+                  <div
+                    className="flex items-center cursor-pointer select-none"
+                    onClick={toggleSort}
                   >
-                    <DropdownMenuItem onClick={() => handleEdit(item)}>
-                      Edit Request Type
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setSelectedTask(item);
-                        setShowDelete(true);
-                      }}
-                    >
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-              <TableCell
-                className="py-1 text-xs cursor-pointer hover:underline"
-                onClick={() => handleEdit(item)}
-              >
-                {item.name}
-              </TableCell>
-              <TableCell className="py-1 text-xs">{item.description}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-[600px] bg-white">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedTask ? "Edit RequestType" : "Add Requestype"}
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit(onsubmit)} className="space-y-4 pt-4">
-            <div>
-              <Label htmlFor="name">Name*</Label>
-              <Input
-                id="name"
-                {...register("name", {
-                  required: "Name is required",
-                  pattern: {
-                    value: /^[A-Za-z]+$/,
-                    message: "Invalid name",
-                  },
-                })}
-                className={`border focus:outline-none focus:ring-2 ${
-                  errors.name
-                    ? "border-red-500 focus:ring-red-400"
-                    : "focus:ring-blue-400"
-                }`}
-                placeholder="Enter Request Type"
-                value={selectedTask?.name || ""}
-                onChange={(e) =>
-                  setSelectedTask({
-                    ...selectedTask,
-                    name: e.target.value,
-                  })
-                }
-              />
-              {errors.name && (
-                <p className="text-red-500 text-xs mt-1">
-                  {String(errors.name.message)}
-                </p>
-              )}
-            </div>
-            <div>
-              <Label htmlFor="Description">Description</Label>
-              <Input
-                id="Desc"
-                placeholder=""
-                value={selectedTask?.description || ""}
-                onChange={(e) =>
-                  setSelectedTask({
-                    ...selectedTask,
-                    description: e.target.value,
-                  })
-                }
-              />
-            </div>
-            <div className="flex justify-end gap-4 pt-4">
-              <Button className="bg-primary w-[140px] h-[44px]" type="submit">
-                Save
-              </Button>
-              <Button
-                variant="outline"
-                className="bg-white w-[140px] h-[44px]"
-                onClick={() => setIsOpen(false)}
-              >
-                Cancel
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-      <AlertDialog open={showDelete} onOpenChange={setShowDelete}>
-        <AlertDialogContent className="rounded-xl py-2  px-0 bg-white">
-          <AlertDialogHeader className="border-b">
-            <AlertDialogTitle className="text-red-600 px-3">
-              Delete
-            </AlertDialogTitle>
-          </AlertDialogHeader>
-          <AlertDialogDescription className="px-3">
-            Do you want to delete selected Task Type?
-          </AlertDialogDescription>
+                    Name
+                    {sortOrder === "asc" ? (
+                      <ArrowUp size={14} className="ml-1 text-gray-600" />
+                    ) : (
+                      <ArrowDown size={14} className="ml-1 text-gray-600" />
+                    )}
+                  </div>
+                </TableHead>
+                <TableHead className="min-w-[250px] lg:text-xs font-semibold leading-[36px]">
+                  <div className="flex items-center cursor-pointer select-none">
+                    Description
+                  </div>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
 
-          <AlertDialogFooter className="px-3 mb-2">
-            <AlertDialogCancel className="rounded-full px-6">
-              Cancel
-            </AlertDialogCancel>
+            <TableBody>
+              {loading
+                ? [...Array(itemsPerPage)].map((_, index) => (
+                  <TableRow key={index} className="p-3">
+                    <TableCell>
+                      <Skeleton className="h-4 w-4 rounded-full" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-[120px]" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-[220px]" />
+                    </TableCell>
+                  </TableRow>
+                ))
+                : data.length === 0
+                  ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={3}
+                        className="text-center py-6 text-gray-500"
+                      >
+                        No data available.
+                      </TableCell>
+                    </TableRow>
+                  )
+                  : data.map((item) => (
+                    <TableRow key={item.id} className="hover:bg-gray-50 bg-white">
+                      <TableCell className="p-2 text-xs">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger className="flex items-center gap-2 hover:bg-gray-100 rounded p-1 w-full">
+                            <Settings className="w-4 h-4 text-gray-500" />
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="start"
+                            sideOffset={4}
+                            className="z-50 w-[140px]"
+                          >
+                            <DropdownMenuItem disabled={actionLoading} onClick={() => handleEdit(item)}>
+                              Edit Request Type
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedTask(item);
+                                setShowDelete(true);
+                              }}
+                              disabled={actionLoading}
+                            >
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
 
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-red-600 text-white rounded-full px-6 hover:bg-red-700 transition"
-            >
-              Confirm
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+                      <TableCell
+                        className="p-2 text-xs cursor-pointer hover:underline"
+                        onClick={() => handleEdit(item)}
+                      >
+                        {item.name}
+                      </TableCell>
+
+                      <TableCell className="p-2 lg:text-xs sm:text-sm max-w-[400px] truncate">
+                        {item.description}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        {!loading && data.length > 0 && (
+          <div className="flex items-center justify-between mt-6">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Show</span>
+              <Select
+                defaultValue={String(itemsPerPage)}
+                onValueChange={(value) => {
+                  setItemsPerPage(Number(value));
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="w-16">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                </SelectContent>
+              </Select>
+              <span className="text-sm text-gray-600">Per Page</span>
+            </div>
+            <div>
+              <MuiStylePagination
+                totalPages={totalPages}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          </div>
+        )}
+        {/* Add / Edit Modal */}
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <DialogContent className="sm:max-w-[600px] bg-white px-[16px] py-4">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-normal">
+                {selectedTask ? "Edit Request Type" : "New Request Type"}
+              </DialogTitle>
+            </DialogHeader>
+            <span className="w-full h-[1px] bg-[#f4f4f4]"></span>
+
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 px-2">
+              <div className="lg:flex sm:flex-none items-center justify-between">
+                <div className="flex items-center gap-2 mb-3 lg:w-[500px] sm:w-none">
+                  <Label>Name <span className="text-red-500">*</span></Label> {errors.name && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.name.message}
+                    </p>
+                  )}
+                </div>
+                <Input
+                  id="name"
+                  {...register("name")}
+                />
+              </div>
+
+              <div className="lg:flex sm:flex-none items-center justify-between">
+                <div className="flex items-center gap-2 mb-3 lg:w-[500px] sm:w-none">
+                  <Label>Description</Label>
+                  {errors.description && (
+                    <p className="text-red-500 text-xs">{errors.description.message}</p>
+                  )}
+                </div>
+                <Textarea
+                  id="description"
+                  className="resize-none bg-white"
+                  {...register("description")}
+                />
+              </div>
+
+              <div className="flex justify-center gap-4 pt-4">
+
+                <Button disabled={isSubmitting} type="submit" className="bg-[#4588f0] py-0 px-7 rounded-full hover:bg-[#3774d1] text-sm font-normal">
+                  {isSubmitting ? "Saving..." : "Save"}
+                </Button>
+                <Button
+                  type="button"
+                  className="bg-[#f5f5f5] px-6 py-0 rounded-full text-[#787878] hover:bg-[#e1e1e1] border border-[#d4d4d4] text-sm font-normal"
+                  onClick={() => {
+                    setIsOpen(false);
+                    setTimeout(() => newRequestButtonRef.current?.focus(), 10);
+                  }}
+                  disabled={actionLoading}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Dialog */}
+        <AlertDialog open={showDelete} onOpenChange={setShowDelete}>
+          <AlertDialogContent className="rounded-xl py-2 px-0 bg-white">
+            <AlertDialogHeader className="border-b">
+              <AlertDialogTitle className="text-red-600 px-3">Delete</AlertDialogTitle>
+            </AlertDialogHeader>
+            <AlertDialogDescription className="px-3">
+              Do you want to delete the slected Request type?
+            </AlertDialogDescription>
+
+            <AlertDialogFooter className="px-3 mb-2">
+              <AlertDialogCancel disabled={actionLoading} className="rounded-full px-6">Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleDelete();
+                }}
+                className="bg-red-600 text-white rounded-full px-6 hover:bg-red-700 transition"
+              >
+                Confirm
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     </Helpdesk>
   );
 };
 
-export default RequestType;
+export default RequestTypePage;

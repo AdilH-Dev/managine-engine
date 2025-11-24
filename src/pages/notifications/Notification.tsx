@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MainLayout } from "@/components/Layout/MainLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,8 +26,11 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 // import plusIcon from "@/assets/svg-icons/plus-icon.svg";
-import tableBottomIcon from "@/assets/svg-icons/table-bottom-icon.svg";
 import { CampaignDialog } from "@/pages/notifications/CampaignDialog"; // adjust path
+import { useNavigate } from "react-router-dom";
+import { ticketService } from "@/services/ticketService";
+import { toast } from "@/hooks/use-toast";
+import { notificationService } from "@/services/notificationService";
 // import type { CampaignFormData } from "./CampaignDialog";
 
 const initialNotifications = [
@@ -54,6 +57,54 @@ const Notification = () => {
     console.log("Campaign Saved:", data);
     setIsDialogOpen(false);
   };
+
+
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [requesterFilter, setRequesterFilter] = useState<string>("all");
+  const [technicianFilter, setTechnicianFilter] = useState<string>("all");
+
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState("5");
+    const navigate = useNavigate();
+    const [totalPages, setTotalPages] = useState(1);
+
+    useEffect(() => {
+      loadTickets();
+    }, [searchTerm,technicianFilter,requesterFilter, statusFilter, priorityFilter,itemsPerPage,currentPage]);
+  
+    const loadTickets = async () => {
+      setLoading(true);
+      try {
+        const params: any = {};
+        if (searchTerm) params.search = searchTerm;
+        if (statusFilter !== "all") params.status_id = statusFilter;
+        if (priorityFilter !== "all") params.priority = priorityFilter;
+        if (requesterFilter !== "all") params.requested_by = requesterFilter;
+        if (technicianFilter !== "all") params.assigned_to = technicianFilter;
+        if (currentPage) params.page = currentPage;
+        if (itemsPerPage) params.limit = itemsPerPage;
+        
+  
+        const response = await notificationService.getNotification(params);
+        if (response?.success) {
+          console.log(response, "response--->>>>");
+          setTickets(response.data.tickets);
+          setTotalPages(response.data.pagination.totalPages);
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to load tickets",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
 
   return (
     <MainLayout title="Setup">
@@ -168,11 +219,6 @@ const Notification = () => {
               &gt;
             </Button>
           </div>
-        </div>
-
-        <div className="flex items-center justify-end gap-2 text-sm font-medium text-[#5C71B6] pt-8 pb-6">
-          <span>© 2025 Vertex. All Rights Reserved.</span>
-          <img alt="tableBottomIcon" src={tableBottomIcon} />
         </div>
       </Card>
     </MainLayout>

@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 // import { Paperclip } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 // import ticketIconTrans from "@/assets/svg-icons/ticket-icon-trans.svg";
 import attachmentIcons from "@/assets/svg-icons/attachment.svg";
 import CustomSelect from "@/components/CustomSelect";
@@ -42,6 +42,16 @@ import { InputFile } from "@/components/tickets/InputFile";
 //   onSuccess: () => void;
 //   onCancel: () => void;
 // }
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import Requester from "../setup/Requester";
+import { AttachmentFilenames } from "@/components/tickets/AttachmentFilenames";
 
 const AddRequest = () => {
   const ticket = null;
@@ -259,7 +269,7 @@ const AddRequest = () => {
     register,
     handleSubmit,
     // setValue,
-    // watch,
+    watch,
     reset,
     setValue,
     control,
@@ -278,6 +288,7 @@ const AddRequest = () => {
       site_id: ticket?.site_id || "",
       group_id: ticket?.group_id || "",
       category_id: ticket?.category_id || "",
+      sub_category_id: ticket?.sub_category_id || "",
       assigned_to: ticket?.technicianId || "",
       priority_id: ticket?.priority_id || "",
       status_id: ticket?.status_id || "",
@@ -286,6 +297,7 @@ const AddRequest = () => {
       notify_emails: ticket?.notify_emails || "",
       description: ticket?.description || "",
       attachments: ticket?.attachments || [],
+      // attachment_filenames:ticket?.attachments || []
     },
   });
 
@@ -306,6 +318,33 @@ const AddRequest = () => {
       toast({
         title: "Error",
         description: "Failed to load form data",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const categoryId = watch("category_id");
+  const [subCatDropDownData, setSubCatDropDownData] = useState([]);
+
+  useEffect(() => {
+    if (categoryId) {
+      getSubCatData(categoryId);
+    } else {
+      setSubCatDropDownData([]); // reset if no category selected
+    }
+  }, [categoryId]);
+
+  const getSubCatData = async (catId?: string | number) => {
+    try {
+      const [dropDownData] = await Promise.all([
+        ticketService.getSubCatDropdown(catId || ""),
+      ]);
+      console.log(dropDownData?.data, "SubCategory Data");
+      setSubCatDropDownData(dropDownData?.data || []);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load subcategories",
         variant: "destructive",
       });
     }
@@ -337,14 +376,18 @@ const AddRequest = () => {
           site_id: ticket.site_id ? String(ticket.site_id) : "",
           group_id: ticket.group_id ? String(ticket.group_id) : "",
           category_id: ticket.category_id ? String(ticket.category_id) : "",
+          sub_category_id: ticket.sub_category_id
+            ? String(ticket.sub_category_id)
+            : "",
           assigned_to: ticket.assigned_to ? String(ticket.assigned_to) : "",
+          due_date: ticket.due_date ?  ticket.due_date : "",
           priority_id: ticket.priority_id ? String(ticket.priority_id) : "",
           status_id: ticket.status_id ? String(ticket.status_id) : "",
           completed: ticket.completed || "",
           notify_by: ticket.notify_by || 1,
           notify_emails: ticket.notifyEmails?.[0]?.email || "",
           description: ticket.description || "",
-          attachments: ticket.attachments || [],
+          attachment_filenames: ticket.attachments || [],
         });
       }
       // setDropDown(dropDownData?.data);
@@ -360,25 +403,34 @@ const AddRequest = () => {
   const onSubmit = async (data: TicketFormSchema) => {
     console.log(data, "datainngngngngn");
     setLoading(true);
+    const filenames = data?.attachment_filenames?.length
+      ? data.attachment_filenames.map((item) => item?.file_name).join(",")
+      : "";
     try {
       const formData: any = {
         ...data,
         company_id: "1",
+        ...(id ? { attachment_filenames: filenames } : {}),
       };
 
       if (id) {
         const res = await ticketService.updateTicket(id, formData);
         console.log("updating ticket...", res, res);
-        if (res?.data?.success) {
+        if (res?.success) {
           // toast({
           //   title: "Success",
           //   description: "Ticket created successfully",
           // });
-          toast({ title: "Success", description: "Ticket updated successfully" });
+          navigate("/requests");
+          toast({
+            title: "Success",
+            description: "Ticket updated successfully",
+          });
         }
       } else {
         const res = await ticketService.createTicket(formData);
-        if (res?.data?.success) {
+        if (res?.success) {
+          navigate("/requests");
           toast({
             title: "Success",
             description: "Ticket created successfully",
@@ -387,15 +439,30 @@ const AddRequest = () => {
       }
       // onSuccess();
     } catch (error) {
-      toast({
-        title: "Error",
-        description: id ? "Failed to update ticket" : "Failed to create ticket",
-        variant: "destructive",
-      });
+      // toast({
+      //   title: "Error",
+      //   description: id ? "Failed to update ticket" : "Failed to create ticket",
+      //   variant: "destructive",
+      // });
     } finally {
       setLoading(false);
     }
   };
+  const [requesterOpen, setRequesterOpen] = useState(false);
+
+  // const { watch } = useFormContext(); // or useForm if this is your main form
+
+  // Reactively watch requested_by
+  const requestedById = watch("requested_by");
+
+  // Find requester info dynamically
+  const requesterData = useMemo(() => {
+    return dropDown?.requesters?.find((r) => r.id == requestedById) || null;
+  }, [dropDown?.requesters, requestedById]);
+
+  console.log(requesterData, "requesterDatarequesterData");
+
+  const filenames = watch("attachment_filenames");
 
   return (
     <MainLayout title="Add Request">
@@ -409,7 +476,7 @@ const AddRequest = () => {
           <ChevronLeft className="h-5 w-5" />
         </Button>
         <h2 className="text-xl font-semibold text-foreground flex-shrink-0">
-          Add Request
+          {id ? "Update" : "Add"} Request
         </h2>
       </div>
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -461,11 +528,36 @@ const AddRequest = () => {
                         onChange={(value) => setValue("requesterId", value?.id)}
                         showNoneOption={true}
                       /> */}
-                      <img
-                        className="h-7 w-7 absolute right-[2px] top-1/2 -translate-y-1/2 text-gray-600 border-l bg-white mt-[12px] px-[2px]"
-                        alt="userIcon"
-                        src={userIcon}
-                      />
+
+                      <Dialog
+                        open={requesterOpen}
+                        onOpenChange={setRequesterOpen}
+                      >
+                        <DialogTrigger asChild>
+                          {/* <Button className="relative"> */}
+                          <img
+                            className="h-7 w-7 cursor-pointer absolute right-[2px] top-1/2 -translate-y-1/2 text-gray-600 border-l bg-white mt-[12px] px-[2px]"
+                            alt="userIcon"
+                            src={userIcon}
+                          />
+                          {/* </Button> */}
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[900px]  bg-white">
+                          <DialogHeader className="max-h-[70vh] overflow-y-auto">
+                            <Requester
+                              footer={false}
+                              setReq={(
+                                field: keyof TicketFormSchema,
+                                value: any
+                              ) => {
+                                setValue(field, value);
+                                setRequesterOpen(false);
+                              }}
+                            />
+                            {/* <DialogTitle>Add Requester</DialogTitle> */}
+                          </DialogHeader>
+                        </DialogContent>
+                      </Dialog>
                       {/* <User  /> */}
                     </div>
                   </div>
@@ -475,23 +567,48 @@ const AddRequest = () => {
                 </div> */}
                   <div>
                     <Label>Email</Label>
-                    <Input placeholder="" disabled />
+                    <Input
+                      className="bg-white text-gray-900"
+                      value={requesterData?.email || ""}
+                      placeholder={""}
+                      disabled
+                    />
                   </div>
                   <div>
                     <Label>Phone Number</Label>
-                    <Input placeholder="" disabled />
+                    <Input
+                      className="bg-white text-gray-900"
+                      value={requesterData?.phonenumber || ""}
+                      placeholder={""}
+                      disabled
+                    />
                   </div>
                   <div>
                     <Label>Site</Label>
-                    <Input placeholder="" disabled />
+                    <Input
+                      className="bg-white text-gray-900"
+                      value={requesterData?.site_name || ""}
+                      placeholder={""}
+                      disabled
+                    />
                   </div>
                   <div>
                     <Label>Department</Label>
-                    <Input placeholder="" disabled />
+                    <Input
+                      className="bg-white text-gray-900"
+                      value={requesterData?.department_name || ""}
+                      placeholder={""}
+                      disabled
+                    />
                   </div>
                   <div>
                     <Label>Job Title</Label>
-                    <Input placeholder="" disabled />
+                    <Input
+                      className="bg-white text-gray-900"
+                      value={requesterData?.job_title || ""}
+                      placeholder={""}
+                      disabled
+                    />
                   </div>
 
                   <div>
@@ -747,17 +864,22 @@ const AddRequest = () => {
                               (r) => r.id == field.value
                             ) || null
                           }
-                          onChange={(option) =>
-                            field.onChange(option?.id.toString())
-                          }
+                          onChange={(option) => {
+                            // update category value
+                            field.onChange(option?.id?.toString() || "");
+
+                            // reset sub-category when category changes
+                            setValue("sub_category_id", "");
+                            console.log("time", "testinggg");
+                          }}
                           showNoneOption
                         />
                       )}
                     />
                   </div>
-                  <div>
+                  {/* <div>
                     <Label>Sub-Category</Label>
-                    {/* <CustomSelect
+                    <CustomSelect
                       options={
                         (selectedCategory &&
                           categories.find(
@@ -770,8 +892,34 @@ const AddRequest = () => {
                         setSelectedCategory(item.id);
                       }}
                       showNoneOption={true}
-                    /> */}
+                    />
+                  </div> */}
+                  {/* Sub-Category Select (only show when available) */}
+                  {/* {categoryId && ( */}
+                  <div>
+                    <Label>Sub-Category</Label>
+                    <Controller
+                      name="sub_category_id"
+                      control={control}
+                      render={({ field }) => (
+                        <CustomSelect
+                          {...field}
+                          options={(categoryId && subCatDropDownData) || []}
+                          placeholder="-- Select Sub-Category --"
+                          defaultValue={
+                            subCatDropDownData?.find(
+                              (r) => r.id == field.value
+                            ) || null
+                          }
+                          onChange={(option) =>
+                            field.onChange(option?.id?.toString())
+                          }
+                          showNoneOption
+                        />
+                      )}
+                    />
                   </div>
+                  {/* )} */}
 
                   <div>
                     <Label>Technician</Label>
@@ -972,6 +1120,10 @@ const AddRequest = () => {
                         />
                       )}
                     />
+                    <AttachmentFilenames
+                      value={filenames}
+                      onChange={(val) => setValue("attachment_filenames", val)}
+                    />
                   </div>
                   {/* <FileUpload files={files} onChange={setFiles} /> */}
                   {/* <div className="col-span-3 bg-white w-full border border-dashed border-gray-300 rounded-md flex items-center justify-between px-4 py-2">
@@ -1022,7 +1174,7 @@ const AddRequest = () => {
                   className="bg-primary w-[140px] h-[44px]"
                 >
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {ticket ? "Update" : "Add"}
+                  {id ? "Update" : "Add"}
                   {/* Add */}
                 </Button>
               </div>

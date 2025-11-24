@@ -1,4 +1,4 @@
-import { MainLayout } from "@/components/Layout/MainLayout";
+// import { MainLayout } from "@/components/Layout/MainLayout";
 import { useNavigate } from "react-router-dom";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
@@ -69,7 +69,7 @@ const ServiceLevelAgreements = () => {
   const [openField, setOpenField] = useState<string | null>(null);
 
   return (
-    <MainLayout title="Setup">
+    <>
       <div className="bg-white">
         <div className="mb-6  px-[24px] py-[15px] flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between bg-gray-100">
           <h3 className="text-xl font-bold text-foreground text-black flex-shrink-0 ">
@@ -933,7 +933,7 @@ const ServiceLevelAgreements = () => {
           </div>
         </div>
       </div>
-    </MainLayout>
+    </>
   );
 };
 

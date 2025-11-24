@@ -1,6 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { X, File } from "lucide-react";
+import { X, File, Eye } from "lucide-react";
 
 interface InputFileProps {
   id: string;
@@ -8,6 +8,7 @@ interface InputFileProps {
   buttonText?: string;
   icon?: string;
   multiple?: boolean;
+  button?: boolean;
   maxFiles?: number;
   maxSize?: number;
   value?: File[];
@@ -23,6 +24,7 @@ export const InputFile = React.forwardRef<HTMLInputElement, InputFileProps>(
       buttonText = "Attach File",
       icon,
       multiple = true,
+      button = true,
       maxFiles = 10,
       maxSize = 10 * 1024 * 1024, // 10 MB
       value = [],
@@ -58,6 +60,18 @@ export const InputFile = React.forwardRef<HTMLInputElement, InputFileProps>(
       return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
     };
 
+    // Add this function in the parent component where <FileUpload /> is used
+    const openPreview = (file: File) => {
+      // Create a temporary URL for the file
+      const fileURL = URL.createObjectURL(file);
+
+      // Open in a new tab
+      window.open(fileURL, "_blank");
+
+      // Optional: revoke the URL after some time to free memory
+      // setTimeout(() => URL.revokeObjectURL(fileURL), 1000 * 60);
+    };
+
     return (
       <div className={cn("space-y-3", className)}>
         <div className="bg-white w-full border border-dashed border-gray-300 rounded-md flex items-center justify-between px-4 py-2">
@@ -81,6 +95,8 @@ export const InputFile = React.forwardRef<HTMLInputElement, InputFileProps>(
             onChange={handleFileChange}
           />
 
+          {button && (
+
           <label
             htmlFor={id}
             className="bg-[#464D9B] w-[120px] text-white text-sm px-4 py-1.5 rounded-md cursor-pointer flex items-center gap-1 hover:bg-[#3b4389] transition"
@@ -88,6 +104,8 @@ export const InputFile = React.forwardRef<HTMLInputElement, InputFileProps>(
             {icon && <img alt="" src={icon} />}
             {buttonText}
           </label>
+          )}
+
         </div>
 
         {value.length > 0 && (
@@ -104,13 +122,23 @@ export const InputFile = React.forwardRef<HTMLInputElement, InputFileProps>(
                     ({formatSize(file.size)})
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleRemove(index)}
-                  className="text-gray-500 hover:text-red-600 transition"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+                <div className="flex items-center gap-2 ml-2">
+                  <button
+                    type="button"
+                    onClick={() => openPreview(file)}
+                    className="text-gray-600 hover:text-blue-600 transition"
+                    title="Preview File"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRemove(index)}
+                    className="text-gray-500 hover:text-red-600 transition ml-2"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>

@@ -85,7 +85,12 @@ export interface TicketAttachment {
 }
 
 export interface DropdownData {
-  requesters: DropdownOption[];
+  base: any;
+  repair: any[];
+  vendors: any[];
+  products: any[];
+  domains: any;
+  requesters: DropdownOptionReq[];
   requestTypes: DropdownOption[];
   sites: DropdownOption[];
   priorities: DropdownOption[];
@@ -99,12 +104,26 @@ export interface DropdownData {
   levels: DropdownOption[];
   categories: DropdownOption[];
   assets: DropdownOption[];
+  departments:DropdownOption[];
+  users:DropdownOption[];
+  roles:DropdownOption[];
+  allowedToView:DropdownOption[];
+  closureCodes:DropdownOption[];
 }
 
 export interface DropdownOption {
   id: string;
+  name: string; 
+}
+
+export interface DropdownOptionReq {
+  id: string;
   name: string;
-  // email?: string;
+  email?: string;
+  site_name?: string;
+  department_name?: string;
+  job_title?: string;
+  phonenumber?: string;  
 }
 
 export interface TicketFormData {
